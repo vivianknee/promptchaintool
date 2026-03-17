@@ -154,9 +154,15 @@ export default function FlavorStepsManager({
       )
     : data;
 
+  const toFkValue = (val: unknown): number | undefined => {
+    if (val === null || val === undefined || val === "" || val === 0) return undefined;
+    const n = Number(val);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+
   const handleCreate = async (formData: Record<string, unknown>) => {
     const supabase = createClient();
-    const { error } = await supabase.from("humor_flavor_steps").insert({
+    const row: Record<string, unknown> = {
       humor_flavor_id: flavorId,
       order_by: formData.order_by,
       description: formData.description || null,
@@ -164,10 +170,15 @@ export default function FlavorStepsManager({
       llm_user_prompt: formData.llm_user_prompt,
       llm_temperature: formData.llm_temperature,
       llm_model_id: formData.llm_model_id,
-      llm_input_type_id: formData.llm_input_type_id || null,
-      llm_output_type_id: formData.llm_output_type_id || null,
-      humor_flavor_step_type_id: formData.humor_flavor_step_type_id || null,
-    });
+    };
+    const inputType = toFkValue(formData.llm_input_type_id);
+    const outputType = toFkValue(formData.llm_output_type_id);
+    const stepType = toFkValue(formData.humor_flavor_step_type_id);
+    if (inputType !== undefined) row.llm_input_type_id = inputType;
+    if (outputType !== undefined) row.llm_output_type_id = outputType;
+    if (stepType !== undefined) row.humor_flavor_step_type_id = stepType;
+
+    const { error } = await supabase.from("humor_flavor_steps").insert(row);
     if (error) throw new Error(error.message);
     showMessage("Step created successfully.", "success");
     fetchSteps();
@@ -176,19 +187,24 @@ export default function FlavorStepsManager({
   const handleUpdate = async (formData: Record<string, unknown>) => {
     if (!editingItem) return;
     const supabase = createClient();
+    const row: Record<string, unknown> = {
+      order_by: formData.order_by,
+      description: formData.description || null,
+      llm_system_prompt: formData.llm_system_prompt,
+      llm_user_prompt: formData.llm_user_prompt,
+      llm_temperature: formData.llm_temperature,
+      llm_model_id: formData.llm_model_id,
+    };
+    const inputType = toFkValue(formData.llm_input_type_id);
+    const outputType = toFkValue(formData.llm_output_type_id);
+    const stepType = toFkValue(formData.humor_flavor_step_type_id);
+    if (inputType !== undefined) row.llm_input_type_id = inputType;
+    if (outputType !== undefined) row.llm_output_type_id = outputType;
+    if (stepType !== undefined) row.humor_flavor_step_type_id = stepType;
+
     const { error } = await supabase
       .from("humor_flavor_steps")
-      .update({
-        order_by: formData.order_by,
-        description: formData.description || null,
-        llm_system_prompt: formData.llm_system_prompt,
-        llm_user_prompt: formData.llm_user_prompt,
-        llm_temperature: formData.llm_temperature,
-        llm_model_id: formData.llm_model_id,
-        llm_input_type_id: formData.llm_input_type_id || null,
-        llm_output_type_id: formData.llm_output_type_id || null,
-        humor_flavor_step_type_id: formData.humor_flavor_step_type_id || null,
-      })
+      .update(row)
       .eq("id", editingItem.id);
     if (error) throw new Error(error.message);
     showMessage("Step updated successfully.", "success");
