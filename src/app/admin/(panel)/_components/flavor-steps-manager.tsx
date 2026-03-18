@@ -248,10 +248,12 @@ export default function FlavorStepsManager({
     const targetStep = sorted[targetIndex];
     const supabase = createClient();
 
-    // Swap order_by values
+    // Use a temporary value to avoid unique constraint violation on (humor_flavor_id, order_by)
+    const tempOrder = -1;
+
     const { error: error1 } = await supabase
       .from("humor_flavor_steps")
-      .update({ order_by: targetStep.order_by })
+      .update({ order_by: tempOrder })
       .eq("id", step.id);
 
     const { error: error2 } = await supabase
@@ -259,7 +261,12 @@ export default function FlavorStepsManager({
       .update({ order_by: step.order_by })
       .eq("id", targetStep.id);
 
-    if (error1 || error2) {
+    const { error: error3 } = await supabase
+      .from("humor_flavor_steps")
+      .update({ order_by: targetStep.order_by })
+      .eq("id", step.id);
+
+    if (error1 || error2 || error3) {
       showMessage("Failed to reorder steps.", "error");
     } else {
       showMessage("Step reordered.", "success");

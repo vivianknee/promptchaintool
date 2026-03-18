@@ -81,7 +81,10 @@ export default function TestRunner() {
         },
         body: JSON.stringify({ contentType: file.type }),
       });
-      if (!presignedRes.ok) throw new Error("Failed to get upload URL");
+      if (!presignedRes.ok) {
+        const errBody = await presignedRes.text();
+        throw new Error(`Failed to get upload URL: ${presignedRes.status} ${errBody}`);
+      }
       const { presignedUrl, cdnUrl } = await presignedRes.json();
 
       setStep("uploading");
@@ -90,7 +93,9 @@ export default function TestRunner() {
         headers: { "Content-Type": file.type },
         body: file,
       });
-      if (!uploadRes.ok) throw new Error("Failed to upload image");
+      if (!uploadRes.ok) {
+        throw new Error(`Failed to upload image: ${uploadRes.status}`);
+      }
 
       setStep("processing");
       const registerRes = await fetch(`${API_BASE}/pipeline/upload-image-from-url`, {
@@ -101,7 +106,10 @@ export default function TestRunner() {
         },
         body: JSON.stringify({ imageUrl: cdnUrl, isCommonUse: false }),
       });
-      if (!registerRes.ok) throw new Error("Failed to register image");
+      if (!registerRes.ok) {
+        const errBody = await registerRes.text();
+        throw new Error(`Failed to register image: ${registerRes.status} ${errBody}`);
+      }
       const { imageId } = await registerRes.json();
 
       setStep("generating");
@@ -113,7 +121,10 @@ export default function TestRunner() {
         },
         body: JSON.stringify({ imageId, humorFlavorId: selectedFlavorId }),
       });
-      if (!captionRes.ok) throw new Error("Failed to generate captions");
+      if (!captionRes.ok) {
+        const errBody = await captionRes.text();
+        throw new Error(`Failed to generate captions: ${captionRes.status} ${errBody}`);
+      }
       const captionData = await captionRes.json();
 
       const raw: unknown[] = Array.isArray(captionData)
