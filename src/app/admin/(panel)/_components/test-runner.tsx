@@ -119,7 +119,7 @@ export default function TestRunner() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ imageId }),
+        body: JSON.stringify({ imageId, humor_flavor_id: selectedFlavorId }),
       });
       if (!captionRes.ok) {
         const errBody = await captionRes.text();
