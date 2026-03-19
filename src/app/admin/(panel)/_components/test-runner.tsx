@@ -126,15 +126,23 @@ export default function TestRunner() {
         throw new Error(`Failed to generate captions: ${captionRes.status} ${errBody}`);
       }
       const captionData = await captionRes.json();
+      console.log("generate-captions raw response:", JSON.stringify(captionData, null, 2));
 
-      const raw: unknown[] = Array.isArray(captionData)
-        ? captionData
-        : captionData.captions ?? [captionData.caption ?? captionData];
-      const generated: string[] = raw.map((item) =>
-        typeof item === "string"
-          ? item
-          : (item as { content?: string }).content ?? JSON.stringify(item)
-      );
+      let generated: string[] = [];
+      if (Array.isArray(captionData)) {
+        generated = captionData.map((item) =>
+          typeof item === "string" ? item : (item as { content?: string }).content ?? JSON.stringify(item)
+        );
+      } else if (captionData.captions && Array.isArray(captionData.captions)) {
+        generated = captionData.captions.map((item: unknown) =>
+          typeof item === "string" ? item : JSON.stringify(item)
+        );
+      } else if (typeof captionData.caption === "string") {
+        generated = [captionData.caption];
+      } else if (typeof captionData === "object") {
+        // The response might be a single object with all captions in a text field
+        generated = [JSON.stringify(captionData)];
+      }
 
       setCaptions(generated);
       setStep("done");

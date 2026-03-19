@@ -10,6 +10,8 @@ type ResponseRow = {
   humor_flavor_id?: number;
   humor_flavor_step_id?: number;
   llm_model_id?: number;
+  caption_request_id?: number;
+  llm_prompt_chain_id?: number;
   created_datetime_utc?: string;
   [key: string]: unknown;
 };
@@ -116,6 +118,15 @@ export default function ResultsTable({
       ),
     },
     {
+      key: "llm_prompt_chain_id",
+      header: "Chain ID",
+      render: (row) => (
+        <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
+          {row.llm_prompt_chain_id ?? "—"}
+        </span>
+      ),
+    },
+    {
       key: "llm_model_response",
       header: "Response",
       render: (row) => (
@@ -184,6 +195,24 @@ export default function ResultsTable({
         onSearchChange={setSearch}
         searchPlaceholder="Search by response content..."
         isLoading={loading}
+        headerActions={
+          <button
+            onClick={() => fetchData(page, search, filterFlavorId)}
+            className="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
+            style={{
+              background: "var(--btn-bg)",
+              color: "var(--btn-text)",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "var(--btn-bg-hover)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "var(--btn-bg)")
+            }
+          >
+            Refresh
+          </button>
+        }
       />
     </div>
   );
