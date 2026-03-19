@@ -12,7 +12,10 @@ type ResponseRow = {
   llm_model_id?: number;
   caption_request_id?: number;
   llm_prompt_chain_id?: number;
-  created_datetime_utc?: string;
+  llm_temperature?: number;
+  llm_system_prompt?: string;
+  llm_user_prompt?: string;
+  profile_id?: string;
   [key: string]: unknown;
 };
 
@@ -37,6 +40,7 @@ export default function ResultsTable({
   const [loading, setLoading] = useState(false);
   const [flavors, setFlavors] = useState<HumorFlavor[]>([]);
   const [filterFlavorId, setFilterFlavorId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchFlavors = async () => {
@@ -57,7 +61,7 @@ export default function ResultsTable({
     const to = from + pageSize - 1;
 
     let query = supabase
-      .from("llm_models_responses")
+      .from("llm_model_responses")
       .select("*", { count: "exact" })
       .order("id", { ascending: false })
       .range(from, to);
@@ -129,30 +133,23 @@ export default function ResultsTable({
     {
       key: "llm_model_response",
       header: "Response",
-      render: (row) => (
-        <span
-          className="text-sm truncate block max-w-lg"
-          style={{ color: "var(--foreground)" }}
-          title={row.llm_model_response ?? ""}
-        >
-          {row.llm_model_response
-            ? row.llm_model_response.length > 100
-              ? row.llm_model_response.slice(0, 100) + "..."
-              : row.llm_model_response
-            : "—"}
-        </span>
-      ),
-    },
-    {
-      key: "created",
-      header: "Created",
-      render: (row) => (
-        <span className="text-xs" style={{ color: "var(--muted)" }}>
-          {row.created_datetime_utc
-            ? new Date(row.created_datetime_utc).toLocaleDateString()
-            : "—"}
-        </span>
-      ),
+      render: (row) => {
+        const text = row.llm_model_response || "—";
+        const isExpanded = expandedId === row.id;
+        const isLong = text.length > 100;
+        return (
+          <span
+            className="text-sm block max-w-lg cursor-pointer"
+            style={{
+              color: row.llm_model_response ? "var(--foreground)" : "var(--muted)",
+              whiteSpace: isExpanded ? "pre-wrap" : undefined,
+            }}
+            onClick={() => isLong && setExpandedId(isExpanded ? null : row.id)}
+          >
+            {isLong && !isExpanded ? text.slice(0, 100) + "..." : text}
+          </span>
+        );
+      },
     },
   ];
 

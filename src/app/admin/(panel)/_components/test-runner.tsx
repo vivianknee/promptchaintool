@@ -88,13 +88,17 @@ export default function TestRunner() {
       const { presignedUrl, cdnUrl } = await presignedRes.json();
 
       setStep("uploading");
-      const uploadRes = await fetch(presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      const proxyForm = new FormData();
+      proxyForm.append("file", file);
+      proxyForm.append("presignedUrl", presignedUrl);
+      proxyForm.append("contentType", file.type);
+      const uploadRes = await fetch("/api/upload-proxy", {
+        method: "POST",
+        body: proxyForm,
       });
       if (!uploadRes.ok) {
-        throw new Error(`Failed to upload image: ${uploadRes.status}`);
+        const errBody = await uploadRes.text();
+        throw new Error(`Failed to upload image: ${uploadRes.status} ${errBody}`);
       }
 
       setStep("processing");
@@ -113,6 +117,7 @@ export default function TestRunner() {
       const { imageId } = await registerRes.json();
 
       setStep("generating");
+      console.log("generate-captions request body:", { imageId, humor_flavor_id: selectedFlavorId });
       const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
         method: "POST",
         headers: {
@@ -126,7 +131,7 @@ export default function TestRunner() {
         throw new Error(`Failed to generate captions: ${captionRes.status} ${errBody}`);
       }
       const captionData = await captionRes.json();
-      console.log("generate-captions raw response:", JSON.stringify(captionData, null, 2));
+      console.log("SENT humor_flavor_id:", selectedFlavorId, "| raw response:", JSON.stringify(captionData, null, 2));
 
       let generated: string[] = [];
       if (Array.isArray(captionData)) {

@@ -7,7 +7,7 @@ export default async function ResultsPage() {
   const supabase = await createClient();
 
   const { data, count } = await supabase
-    .from("llm_models_responses")
+    .from("llm_model_responses")
     .select("*", { count: "exact" })
     .order("id", { ascending: false })
     .range(0, PAGE_SIZE - 1);
