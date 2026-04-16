@@ -50,6 +50,7 @@ export default function HumorFlavorsManager({
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<HumorFlavorRow | null>(null);
   const [deletingItem, setDeletingItem] = useState<HumorFlavorRow | null>(null);
+  const [duplicatingItem, setDuplicatingItem] = useState<HumorFlavorRow | null>(null);
   const [message, setMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -133,6 +134,36 @@ export default function HumorFlavorsManager({
       fetchData(page, search);
     }
     setDeletingItem(null);
+  };
+
+  const handleDuplicate = async (formData: Record<string, unknown>) => {
+    if (!duplicatingItem) return;
+    const supabase = createClient();
+
+    const { data: newFlavor, error: flavorError } = await supabase
+      .from("humor_flavors")
+      .insert({ slug: formData.slug, description: duplicatingItem.description })
+      .select()
+      .single();
+    if (flavorError) throw new Error(flavorError.message);
+
+    const { data: steps } = await supabase
+      .from("humor_flavor_steps")
+      .select("*")
+      .eq("humor_flavor_id", duplicatingItem.id);
+
+    if (steps && steps.length > 0) {
+      const copies = steps.map(({ id: _id, created_datetime_utc: _c, humor_flavor_id: _f, ...rest }: Record<string, unknown>) => ({
+        ...rest,
+        humor_flavor_id: newFlavor.id,
+      }));
+      const { error: stepsError } = await supabase.from("humor_flavor_steps").insert(copies);
+      if (stepsError) throw new Error(stepsError.message);
+    }
+
+    showMessage(`Duplicated "${duplicatingItem.slug}" as "${formData.slug}".`, "success");
+    setDuplicatingItem(null);
+    fetchData(page, search);
   };
 
   const columns: Column<HumorFlavorRow>[] = [
@@ -248,6 +279,22 @@ export default function HumorFlavorsManager({
               Steps
             </button>
             <button
+              onClick={() => setDuplicatingItem(row)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              style={{
+                background: "var(--btn-bg)",
+                color: "var(--btn-text)",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--btn-bg-hover)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "var(--btn-bg)")
+              }
+            >
+              Duplicate
+            </button>
+            <button
               onClick={() => {
                 setEditingItem(row);
                 setFormOpen(true);
@@ -293,6 +340,23 @@ export default function HumorFlavorsManager({
           setEditingItem(null);
         }}
         onSave={editingItem ? handleUpdate : handleCreate}
+      />
+
+      <FormModal
+        isOpen={duplicatingItem !== null}
+        title={`Duplicate "${duplicatingItem?.slug}"`}
+        fields={[
+          {
+            key: "slug",
+            label: "New Slug",
+            type: "text",
+            required: true,
+            placeholder: "e.g., sarcastic-wit-v2",
+          },
+        ]}
+        initialValues={{ slug: duplicatingItem ? `${duplicatingItem.slug}-copy` : "" }}
+        onClose={() => setDuplicatingItem(null)}
+        onSave={handleDuplicate}
       />
 
       <ConfirmDialog
